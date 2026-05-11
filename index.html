@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق حافلة ثاغية - 5 DH</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #0a3d7a; --secondary: #1e56a0; --bg: #f0f2f5; --accent: #e67e22; --success: #2ecc71; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg); margin: 0; padding-bottom: 50px; }
+        
+        /* شريط الحالة */
+        .status-bar { background: #222; color: #fff; padding: 10px; font-size: 14px; text-align: center; font-weight: bold; position: sticky; top: 0; z-index: 1000; }
+        .on-way { background: var(--secondary) !important; }
+        .arrived { background: var(--success) !important; }
+
+        .header { width: 100%; height: 140px; background: var(--primary); background-image: url('image.png'); background-size: cover; background-position: center; position: relative; }
+        .header-overlay { position: absolute; inset: 0; background: linear-gradient(transparent, rgba(0,0,0,0.8)); display: flex; flex-direction: column; justify-content: flex-end; padding: 15px; color: white; }
+
+        /* خريطة المسار */
+        .route-map { margin: 15px; background: white; padding: 25px 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; }
+        .line { position: absolute; top: 40%; left: 15%; right: 15%; height: 4px; background: #eee; z-index: 1; }
+        .progress-line { position: absolute; top: 40%; left: 15%; height: 4px; background: var(--secondary); z-index: 2; transition: 1s; width: 0%; }
+        .stations { display: flex; justify-content: space-between; position: relative; z-index: 3; }
+        .dot { width: 14px; height: 14px; background: white; border: 3px solid #ddd; border-radius: 50%; margin: 0 auto 8px; }
+        .active-dot { border-color: var(--secondary); background: var(--secondary); box-shadow: 0 0- 8px var(--secondary); }
+
+        /* البطاقة الرئيسية */
+        .main-card { margin: 0 15px 15px; background: white; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; }
+        .info-grid { display: flex; background: #fff; border-bottom: 1px solid #eee; }
+        .info-item { flex: 1; padding: 15px; text-align: center; border-left: 1px solid #eee; }
+        .info-item:last-child { border-left: none; }
+        .info-item small { color: #888; font-size: 11px; display: block; }
+        .info-item strong { font-size: 18px; color: var(--primary); }
+
+        /* منطقة الحجز */
+        .booking-box { padding: 20px; background: #fcfcfc; }
+        .input-group { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
+        .btn-confirm { width: 100%; padding: 14px; background: var(--accent); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+
+        /* لوحة السائق */
+        .driver-panel { margin: 15px; padding: 20px; background: #fff; border: 2px solid var(--primary); border-radius: 20px; }
+        .hidden { display: none; }
+        .passenger-row { padding: 10px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+
+        .footer-link { text-align: center; padding: 20px; color: #bbb; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+    <div class="status-bar" id="statusTxt">جاري التحقق...</div>
+
+    <div class="header">
+        <div class="header-overlay">
+            <div id="clock">00:00:00</div>
+            <div style="font-size:12px">حافلة ثاغية | خدمة النقل اليومية</div>
+        </div>
+    </div>
+
+    <div class="route-map">
+        <div class="line"></div>
+        <div class="progress-line" id="prog"></div>
+        <div class="stations">
+            <div style="text-align:center; width:80px">
+                <div class="dot" id="dotS"></div>
+                <small id="nameS" style="font-weight:bold">ثاغية</small>
+            </div>
+            <div style="text-align:center; width:80px">
+                <div class="dot" id="dotE"></div>
+                <small id="nameE" style="font-weight:bold">المنزل</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-card">
+        <div class="info-grid">
+            <div class="info-item"><small>الانطلاق</small><strong id="vS">--:--</strong></div>
+            <div class="info-item"><small>الوصول</small><strong id="vE">--:--</strong></div>
+            <div class="info-item"><small>الثمن</small><strong style="color:var(--success)">5 DH</strong></div>
+        </div>
+
+        <div class="booking-box">
+            <h4 style="margin:0 0 10px"><i class="fas fa-edit"></i> حجز مكانك</h4>
+            <input type="text" id="pName" class="input-group" placeholder="الاسم">
+            <input type="tel" id="pTel" class="input-group" placeholder="الهاتف">
+            <input type="number" id="pCount" class="input-group" value="1" min="1">
+            <button class="btn-confirm" onclick="book()">تأكيد الحجز</button>
+        </div>
+    </div>
+
+    <div id="adminArea" class="driver-panel hidden">
+        <h3 style="color:var(--primary); margin-top:0">🛠 لوحة السائق</h3>
+        <div style="margin-bottom:15px">
+            <label><input type="radio" name="org" value="ثاغية" id="rS"> من ثاغية</label>
+            <label><input type="radio" name="org" value="المنزل" id="rE"> من المنزل</label>
+        </div>
+        <div style="display:flex; gap:10px; margin-bottom:15px">
+            <input type="time" id="setS" class="input-group">
+            <input type="time" id="setE" class="input-group">
+        </div>
+        <button class="btn-confirm" style="background:var(--primary)" onclick="saveAdmin()">تحديث الرحلة الآن</button>
+
+        <div style="margin-top:20px">
+            <strong>ركاب الرحلة الحالية:</strong>
+            <div id="pList" style="max-height:200px; overflow-y:auto"></div>
+            <div style="padding:10px; background:#f9f9f9; margin-top:10px; border-radius:10px">
+                المجموع: <span id="total" style="color:red; font-weight:bold">0</span> مقاعد
+            </div>
+            <button onclick="resetAll()" style="width:100%; background:red; color:white; border:none; padding:10px; margin-top:10px; border-radius:10px">تفريغ القائمة يدوياً</button>
+        </div>
+    </div>
+
+    <div class="footer-link" onclick="openAdmin()">دخول السائق (خاص) <i class="fas fa-user-tie"></i></div>
+
+<script>
+    const PASS = "1234"; // كلمة السر الخاصة بك
+
+    window.onload = function() {
+        refreshData();
+        setInterval(tick, 1000);
+    };
+
+    function openAdmin() {
+        let p = prompt("أدخل كلمة مرور السائق:");
+        if(p === PASS) {
+            document.getElementById('adminArea').classList.toggle('hidden');
+        } else {
+            alert("كلمة مرور خاطئة!");
+        }
+    }
+
+    function saveAdmin() {
+        localStorage.setItem('tS', document.getElementById('setS').value);
+        localStorage.setItem('tE', document.getElementById('setE').value);
+        localStorage.setItem('org', document.querySelector('input[name="org"]:checked').value);
+        localStorage.setItem('cleaned', 'false');
+        location.reload();
+    }
+
+    function tick() {
+        const now = new Date();
+        document.getElementById('clock').textContent = now.toLocaleTimeString('ar-SA');
+        
+        const s = localStorage.getItem('tS') || "07:00";
+        const e = localStorage.getItem('tE') || "08:00";
+        const org = localStorage.getItem('org') || "ثاغية";
+
+        const nowM = now.getHours() * 60 + now.getMinutes();
+        const startM = parseInt(s.split(':')[0]) * 60 + parseInt(s.split(':')[1]);
+        const endM = parseInt(e.split(':')[0]) * 60 + parseInt(e.split(':')[1]);
+
+        const status = document.getElementById('statusTxt');
+        const prog = document.getElementById('prog');
+
+        if(nowM < startM) {
+            status.textContent = "⌛ بانتظار الانطلاق من " + org;
+            status.className = "status-bar";
+            prog.style.width = "0%";
+        } else if(nowM >= startM && nowM < endM) {
+            status.textContent = "🚌 نحن في الطريق الآن...";
+            status.className = "status-bar on-way";
+            prog.style.width = ((nowM - startM) / (endM - startM) * 100) + "%";
+        } else {
+            status.textContent = "✅ وصلت الحافلة بسلام";
+            status.className = "status-bar arrived";
+            prog.style.width = "100%";
+            if(localStorage.getItem('cleaned') !== 'true') {
+                localStorage.setItem('bookings', '[]');
+                localStorage.setItem('cleaned', 'true');
+                loadB();
+            }
+        }
+    }
+
+    function book() {
+        const name = document.getElementById('pName').value;
+        const tel = document.getElementById('pTel').value;
+        const count = parseInt(document.getElementById('pCount').value);
+        if(!name || !tel) return alert("يرجى ملء البيانات");
+
+        let bks = JSON.parse(localStorage.getItem('bookings') || "[]");
+        bks.push({name, tel, count});
+        localStorage.setItem('bookings', JSON.stringify(bks));
+        alert("تم الحجز! شكراً لك.");
+        location.reload();
+    }
+
+    function refreshData() {
+        const s = localStorage.getItem('tS') || "07:00";
+        const e = localStorage.getItem('tE') || "08:00";
+        const org = localStorage.getItem('org') || "ثاغية";
+
+        document.getElementById('vS').textContent = s;
+        document.getElementById('vE').textContent = e;
+        document.getElementById('setS').value = s;
+        document.getElementById('setE').value = e;
+
+        if(org === "ثاغية") {
+            document.getElementById('rS').checked = true;
+            document.getElementById('dotS').classList.add('active-dot');
+        } else {
+            document.getElementById('rE').checked = true;
+            document.getElementById('dotE').classList.add('active-dot');
+        }
+        loadB();
+    }
+
+    function loadB() {
+        const bks = JSON.parse(localStorage.getItem('bookings') || "[]");
+        const list = document.getElementById('pList');
+        let total = 0;
+        list.innerHTML = bks.length ? "" : "<p style='font-size:12px;color:#999'>لا ركاب</p>";
+        bks.forEach(b => {
+            total += b.count;
+            list.innerHTML += `<div class="passenger-row">
+                <span><b>${b.name}</b> (${b.count})</span>
+                <a href="tel:${b.tel}" style="color:green;text-decoration:none"><i class="fas fa-phone"></i> اتصال</a>
+            </div>`;
+        });
+        document.getElementById('total').textContent = total;
+    }
+
+    function resetAll() { if(confirm("تصفير؟")) { localStorage.setItem('bookings', '[]'); location.reload(); } }
+</script>
+</body>
+</html>
