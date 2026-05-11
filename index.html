@@ -113,6 +113,37 @@
             <div style="padding:10px; background:#f9f9f9; margin-top:10px; border-radius:10px">
                 المجموع: <span id="total" style="color:red; font-weight:bold">0</span> مقاعد
             </div>
+            <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+<script>
+    // الإعدادات الخاصة بـ Firebase (ضع بياناتك هنا)
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        databaseURL: "https://your-project-id.firebaseio.com",
+        projectId: "your-project-id",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    
+    const PASS = "1234"; 
+    // ... باقي الكود القديم
+function saveAdmin() {
+    const s = document.getElementById('setS').value;
+    const e = document.getElementById('setE').value;
+    const org = document.querySelector('input[name="org"]:checked').value;
+
+    // بدلاً من localStorage.setItem، نستخدم db.ref().set()
+    db.ref('trip_info').set({
+        tS: s,
+        tE: e,
+        org: org,
+        cleaned: 'false'
+    }).then(() => {
+        alert("تم تحديث الرحلة لجميع المسافرين!");
+    });
+}
+
             <button onclick="resetAll()" style="width:100%; background:red; color:white; border:none; padding:10px; margin-top:10px; border-radius:10px">تفريغ القائمة يدوياً</button>
         </div>
     </div>
@@ -226,6 +257,31 @@
         });
         document.getElementById('total').textContent = total;
     }
+function refreshData() {
+    // الاستماع المباشر للتغييرات من Firebase
+    db.ref('trip_info').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if(data) {
+            // تحديث قيم الوقت في الواجهة
+            document.getElementById('vS').textContent = data.tS;
+            document.getElementById('vE').textContent = data.tE;
+            document.getElementById('setS').value = data.tS;
+            document.getElementById('setE').value = data.tE;
+
+            // تحديث نقطة الانطلاق
+            if(data.org === "ثاغية") {
+                document.getElementById('rS').checked = true;
+                document.getElementById('dotS').classList.add('active-dot');
+                document.getElementById('dotE').classList.remove('active-dot');
+            } else {
+                document.getElementById('rE').checked = true;
+                document.getElementById('dotE').classList.add('active-dot');
+                document.getElementById('dotS').classList.remove('active-dot');
+            }
+        }
+    });
+    loadB();
+}
 
     function resetAll() { if(confirm("تصفير؟")) { localStorage.setItem('bookings', '[]'); location.reload(); } }
 </script>
