@@ -105,7 +105,7 @@
     <div class="footer-link" onclick="openAdmin()">دخول السائق (خاص) <i class="fas fa-user-tie"></i></div>
 
 <script>
-    // بياناتك الخاصة التي استخرجتها من Firebase Console
+    // بيانات الربط الخاصة بك
     const firebaseConfig = {
       apiKey: "AIzaSyAWPguwrtG_Nw2WAIiMFl6v-JRF2lMNRmg",
       authDomain: "care-taghit.firebaseapp.com",
@@ -145,7 +145,7 @@
         
         if(!s || !e || !orgSelect) return alert("يرجى إكمال البيانات");
 
-        // إرسال البيانات للسحابة ليراها الجميع فوراً
+        // إرسال البيانات لسحابة Firebase
         db.ref('trip_info').set({
             tS: s,
             tE: e,
