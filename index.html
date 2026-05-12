@@ -12,32 +12,26 @@
     <style>
         :root { --primary: #0a3d7a; --secondary: #1e56a0; --bg: #f0f2f5; --accent: #e67e22; --success: #2ecc71; }
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg); margin: 0; padding-bottom: 50px; }
-        
         .status-bar { background: #222; color: #fff; padding: 10px; font-size: 14px; text-align: center; font-weight: bold; position: sticky; top: 0; z-index: 1000; }
         .on-way { background: var(--secondary) !important; }
         .arrived { background: var(--success) !important; }
-
         .header { width: 100%; height: 140px; background: var(--primary); background-image: url('image.png'); background-size: cover; background-position: center; position: relative; }
         .header-overlay { position: absolute; inset: 0; background: linear-gradient(transparent, rgba(0,0,0,0.8)); display: flex; flex-direction: column; justify-content: flex-end; padding: 15px; color: white; }
-
         .route-map { margin: 15px; background: white; padding: 25px 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; }
         .line { position: absolute; top: 40%; left: 15%; right: 15%; height: 4px; background: #eee; z-index: 1; }
         .progress-line { position: absolute; top: 40%; left: 15%; height: 4px; background: var(--secondary); z-index: 2; transition: 1s; width: 0%; }
         .stations { display: flex; justify-content: space-between; position: relative; z-index: 3; }
         .dot { width: 14px; height: 14px; background: white; border: 3px solid #ddd; border-radius: 50%; margin: 0 auto 8px; }
         .active-dot { border-color: var(--secondary); background: var(--secondary); box-shadow: 0 0 8px var(--secondary); }
-
         .main-card { margin: 0 15px 15px; background: white; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; }
         .info-grid { display: flex; background: #fff; border-bottom: 1px solid #eee; }
         .info-item { flex: 1; padding: 15px; text-align: center; border-left: 1px solid #eee; }
         .info-item:last-child { border-left: none; }
         .info-item small { color: #888; font-size: 11px; display: block; }
         .info-item strong { font-size: 18px; color: var(--primary); }
-
         .booking-box { padding: 20px; background: #fcfcfc; }
         .input-group { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
         .btn-confirm { width: 100%; padding: 14px; background: var(--accent); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-
         .driver-panel { margin: 15px; padding: 20px; background: #fff; border: 2px solid var(--primary); border-radius: 20px; }
         .hidden { display: none; }
         .passenger-row { padding: 10px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
@@ -46,7 +40,7 @@
 </head>
 <body>
 
-    <div class="status-bar" id="statusTxt">جاري التحقق...</div>
+    <div class="status-bar" id="statusTxt">جاري التحميل...</div>
 
     <div class="header">
         <div class="header-overlay">
@@ -111,18 +105,21 @@
     <div class="footer-link" onclick="openAdmin()">دخول السائق (خاص) <i class="fas fa-user-tie"></i></div>
 
 <script>
-    // 2. إعدادات Firebase - استبدل هذه البيانات ببيانات مشروعك
+    // بياناتك الخاصة التي استخرجتها من Firebase Console
     const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        databaseURL: "https://your-project-id-default-rtdb.firebaseio.com",
-        projectId: "your-project-id",
+      apiKey: "AIzaSyAWPguwrtG_Nw2WAIiMFl6v-JRF2lMNRmg",
+      authDomain: "care-taghit.firebaseapp.com",
+      projectId: "care-taghit",
+      databaseURL: "https://care-taghit-default-rtdb.firebaseio.com", 
+      storageBucket: "care-taghit.firebasestorage.app",
+      messagingSenderId: "1015585467625",
+      appId: "1:1015585467625:web:26fd4dfd9cdd67426ad478"
     };
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const PASS = "1234"; 
-
-    // متغيرات عالمية لمزامنة الوقت في دالة tick
+    const PASS = "1234";
     let currentStart = "07:00";
     let currentEnd = "08:00";
     let currentOrg = "ثاغية";
@@ -141,7 +138,6 @@
         }
     }
 
-    // 3. التعديل: حفظ البيانات سحابياً
     function saveAdmin() {
         const s = document.getElementById('setS').value;
         const e = document.getElementById('setE').value;
@@ -149,13 +145,13 @@
         
         if(!s || !e || !orgSelect) return alert("يرجى إكمال البيانات");
 
+        // إرسال البيانات للسحابة ليراها الجميع فوراً
         db.ref('trip_info').set({
             tS: s,
             tE: e,
-            org: orgSelect.value,
-            cleaned: 'false'
+            org: orgSelect.value
         }).then(() => {
-            alert("تم تحديث الرحلة بنجاح لدى الجميع!");
+            alert("تم التحديث بنجاح!");
         });
     }
 
@@ -191,18 +187,15 @@
         const count = parseInt(document.getElementById('pCount').value);
         if(!name || !tel) return alert("يرجى ملء البيانات");
 
-        // إرسال الحجز لـ Firebase ليظهر للسائق فوراً
-        const bRef = db.ref('bookings').push();
-        bRef.set({name, tel, count}).then(() => {
-            alert("تم الحجز! شكراً لك.");
+        db.ref('bookings').push({name, tel, count}).then(() => {
+            alert("تم الحجز بنجاح!");
             document.getElementById('pName').value = "";
             document.getElementById('pTel').value = "";
         });
     }
 
-    // 4. التعديل: الاستماع اللحظي للبيانات
     function refreshData() {
-        // مراقبة أوقات الرحلة
+        // مراقبة التغييرات الحية من قاعدة البيانات
         db.ref('trip_info').on('value', (snapshot) => {
             const data = snapshot.val();
             if(data) {
@@ -227,13 +220,11 @@
             }
         });
 
-        // مراقبة قائمة الركاب
         db.ref('bookings').on('value', (snapshot) => {
             const bks = snapshot.val();
             const list = document.getElementById('pList');
             let total = 0;
             list.innerHTML = bks ? "" : "<p style='font-size:12px;color:#999'>لا ركاب</p>";
-            
             if(bks) {
                 Object.keys(bks).forEach(key => {
                     const b = bks[key];
@@ -249,7 +240,7 @@
     }
 
     function resetAll() { 
-        if(confirm("هل تريد تفريغ قائمة الركاب؟")) { 
+        if(confirm("هل تريد مسح قائمة الركاب؟")) { 
             db.ref('bookings').remove(); 
         } 
     }
